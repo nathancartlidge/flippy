@@ -13,7 +13,8 @@ from flippy.font_data import ADAFRUIT_5X7_DATA
 class Font:
     """Class to store fonts"""
     def __init__(self, font_data: list, num_chars: int, height: int,
-                 space_width: int = 2, alternate_mode: bool = False):
+                 space_width: int = 2, alternate_mode: bool = False,
+                 kern: bool = False):
         if height > 16:
             raise ValueError("This class does not yet support fonts larger than 16px tall")
         self._height = height
@@ -21,6 +22,7 @@ class Font:
         self._num_chars = num_chars
         self._space_width = space_width
         self._alternate_mode = alternate_mode
+        self._kern = kern
 
     @property
     def num_chars(self):
@@ -38,16 +40,42 @@ class Font:
             raise ValueError("Error: invalid char!")
 
         raw_data = self._font_data[ord(character)]
-        if character == " ":
-            raw_data = [0x00] * self._space_width
 
         if self.height <= 8:
+            if character == " ":
+                raw_data = [0x00] * self._space_width
+            elif self._kern:
+                raw_data = self._apply_kerning(raw_data)
+
             return [self._small_font_convert_line(x) for x in raw_data]
         else:
+            if character == " ":
+                raw_data = [0x00] * self._space_width * 2
+            elif self._kern:
+                raw_data = self._apply_kerning(raw_data, group=True)
+
             char_midpoint = int(len(raw_data) / 2)
             return [self._large_font_convert_line(x, y)
                     for x, y in zip(raw_data[:char_midpoint],
                                     raw_data[char_midpoint:])]
+
+    @staticmethod
+    def _apply_kerning(raw_data: list[int], group: bool = False):
+        i = 0
+        j = len(raw_data)
+
+        if group:
+            while i < j and raw_data[i] == 0x00 and raw_data[i + 1] == 0x00:
+                i += 2
+            while j >= i and raw_data[j - 1] == 0x00 and raw_data[j - 2] == 0x00:
+                j -= 2
+        else:
+            while i < j and raw_data[i] == 0x00:
+                i += 1
+            while j >= i and raw_data[j - 1] == 0x00:
+                j -= 1
+
+        return raw_data[i:j]
 
     def string(self, string: str, ignore_errors: bool = False):
         """Generates the representation of a string of characters"""
@@ -169,3 +197,4 @@ class TextRenderer:
 
 
 ADAFRUIT_5X7 = Font(ADAFRUIT_5X7_DATA, 255, 8)
+ADAFRUIT_5X7_KERN = Font(ADAFRUIT_5X7_DATA, 255, 8, kern=True)
