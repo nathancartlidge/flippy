@@ -63,7 +63,7 @@ class Font:
             output.extend(representation)
             if i != len(string):
                 output.append([0x00] * self.height)
-        return np.array(output).T
+        return np.array(output)
 
     def _small_font_convert_line(self, code):
         """Parses fonts under 8px tall to the correct format"""
@@ -90,7 +90,7 @@ class Font:
     def preview(data: np.ndarray):
         """Format the data for validation purposes"""
         output_string = ""
-        for line in data:
+        for line in data.T:
             for char in line:
                 output_string += [' ', '█'][char] * 2
             output_string += "\n"
@@ -126,18 +126,18 @@ class TextRenderer:
         if not allow_clip and rendered_text.shape[0] > screen.shape[0]:
             raise ValueError("Text does not fit on screen")
 
-        height = min(screen.shape[0], rendered_text.shape[0])
-        width = min(screen.shape[1], rendered_text.shape[1])
-        rendered_text = rendered_text[0:height, 0:width]
+        width = min(screen.shape[0], rendered_text.shape[0])
+        height = min(screen.shape[1], rendered_text.shape[1])
+        rendered_text = rendered_text[0:width, 0:height]
 
         # todo: allow offset y
         if align is TextAlign.LEFT:
-            screen[0:height, 0:width] = rendered_text
+            screen[0:width, 0:height] = rendered_text
         elif align is TextAlign.RIGHT:
-            screen[0:height, self.shape[1] - width:self.shape[1]] = rendered_text
+            screen[self.shape[0] - width:self.shape[0], 0:height] = rendered_text
         elif align is TextAlign.CENTER:
-            start = (self.shape[1] - width) // 2
-            screen[0:height, start:start+width] = rendered_text
+            start = (self.shape[0] - width) // 2
+            screen[start:start+width, 0:height] = rendered_text
         else:
             raise ValueError("Unknown Alignment")
 
