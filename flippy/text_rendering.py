@@ -1,28 +1,25 @@
 """
-This class is an adapter function to allow fonts originally provided with the
-repository https://github.com/greiman/SSD1306Ascii to be used here
+This class contains adapter functions (`BinaryFont` and `BitmapFont`) to allow
+font files from other sources (SSD1306ASCII and Minecraft/similar games
+respectively as a source of text
 """
-
+import pathlib
+from abc import abstractmethod
 from enum import Enum
+from pathlib import Path
 
 import numpy as np
+from PIL import Image
 
 from flippy.font_data import ADAFRUIT_5X7_DATA
 
 
 class Font:
     """Class to store fonts"""
-    def __init__(self, font_data: list, num_chars: int, height: int,
-                 space_width: int = 2, alternate_mode: bool = False,
-                 kern: bool = False):
-        if height > 16:
-            raise ValueError("This class does not yet support fonts larger than 16px tall")
+    def __init__(self, height: int, num_chars: int, space_width: int = 2):
         self._height = height
-        self._font_data = font_data
         self._num_chars = num_chars
         self._space_width = space_width
-        self._alternate_mode = alternate_mode
-        self._kern = kern
 
     @property
     def num_chars(self):
@@ -34,7 +31,58 @@ class Font:
         """Returns the height of the font in pixels"""
         return self._height
 
-    def _char(self, character):
+    @abstractmethod
+    def char(self, character):
+        """Outputs the font data for a particular character as a numpy array"""
+        raise NotImplementedError
+
+    def string(self, string: str, ignore_errors: bool = False):
+        """
+        Based upon the `char` function, generate the representation of a string
+        of characters
+        """
+        output = []
+        for i, char in enumerate(string):
+            try:
+                representation = self.char(char)
+            except ValueError:
+                if not ignore_errors:
+                    raise
+                else:
+                    continue
+            output.extend(representation)
+
+            if i != len(string) - 1:  # do not output a gap after the last character
+                # a one-pixel horizontal between letters
+                output.append([0x00] * self.height)
+
+        return np.array(output)
+
+    @staticmethod
+    def preview(data: np.ndarray):
+        """Format the data for validation purposes"""
+        output_string = ""
+        for line in data.T:
+            for char in line:
+                output_string += [' ', '█'][char] * 2
+            output_string += "\n"
+
+        print(output_string)
+
+
+class BinaryFont(Font):
+    """Fonts adapted from https://github.com/greiman/SSD1306Ascii data"""
+    def __init__(self, font_data: list, height: int, space_width: int = 2,
+                 alternate_mode: bool = False, kern: bool = False):
+        if height > 16:
+            raise ValueError("This class does not yet support fonts larger than 16px tall")
+        super().__init__(height, len(font_data), space_width)
+
+        self._alternate_mode = alternate_mode
+        self._font_data = font_data
+        self._kern = kern
+
+    def char(self, character):
         """Font data for a particular character"""
         if ord(character) > self.num_chars:
             raise ValueError("Error: invalid char!")
@@ -77,22 +125,6 @@ class Font:
 
         return raw_data[i:j]
 
-    def string(self, string: str, ignore_errors: bool = False):
-        """Generates the representation of a string of characters"""
-        output = []
-        for i, char in enumerate(string):
-            try:
-                representation = self._char(char)
-            except ValueError:
-                if not ignore_errors:
-                    raise
-                else:
-                    continue
-            output.extend(representation)
-            if i != len(string):
-                output.append([0x00] * self.height)
-        return np.array(output)
-
     def _small_font_convert_line(self, code):
         """Parses fonts under 8px tall to the correct format"""
         arr = []
@@ -114,16 +146,57 @@ class Font:
             arr.append(int(pixel))
         return arr
 
-    @staticmethod
-    def preview(data: np.ndarray):
-        """Format the data for validation purposes"""
-        output_string = ""
-        for line in data.T:
-            for char in line:
-                output_string += [' ', '█'][char] * 2
-            output_string += "\n"
 
-        print(output_string)
+class BitmapFont(Font):
+    """Fonts adapted from https://github.com/greiman/SSD1306Ascii data"""
+
+    def __init__(self, path: Path, size: int = 8, space_width: int = 2,
+                 kern: bool = True):
+        self._size = size
+        self._bitmap = Image.open(path)
+
+        self._dimensions = (self._bitmap.width // size, self._bitmap.height // size)
+        if self._bitmap.mode not in ("1", "L", "P"):
+            raise ValueError("Unsupported colour space")
+
+        super().__init__(height=size, num_chars=self._dimensions[0] * self._dimensions[1], space_width=space_width)
+        self._kern = kern
+
+    def char(self, character):
+        """Font data for a particular character"""
+        if ord(character) > self.num_chars:
+            raise ValueError("Error: invalid char!")
+
+        x = self._size * (ord(character) % self._dimensions[0])
+        y = self._size * (ord(character) // self._dimensions[0])
+        pixels = np.array(self._bitmap)[y:y+self._size, x:x+self._size]
+
+        if self._kern:
+            pixels = self._apply_kerning(pixels)
+
+        return pixels.T
+
+    @staticmethod
+    def _apply_kerning(character_pixels: np.ndarray):
+        pixel_rows = []
+        for row in character_pixels.T:
+            pixel_rows.append(row)
+
+        # remove lines of pixels from the start
+        for row in pixel_rows:
+            if sum(row) == 0:
+                pixel_rows.pop(0)
+            else:
+                break
+
+        # remove lines of empty pixels from the end
+        for row in pixel_rows[::-1]:
+            if sum(row) == 0:
+                pixel_rows.pop()
+            else:
+                break
+
+        return np.array(pixel_rows).T
 
 
 class TextAlign(Enum):
@@ -149,10 +222,12 @@ class TextRenderer:
              allow_clip: bool = False):
         """renders a single screen of text"""
         screen = np.full(self.shape, False, dtype=bool)
+        if text == "":
+            return screen
         rendered_text = self._font.string(text)
 
         if not allow_clip and rendered_text.shape[0] > screen.shape[0]:
-            raise ValueError("Text does not fit on screen")
+            raise ValueError(f"Text '{text}' cannot fit on screen")
 
         width = min(screen.shape[0], rendered_text.shape[0])
         height = min(screen.shape[1], rendered_text.shape[1])
@@ -181,7 +256,7 @@ class TextRenderer:
         counter = 0
         while counter < len(words):
             added_words = [words[counter]]
-            while self._font.string(" ".join(added_words)).shape[1] <= self.shape[1]:
+            while self._font.string(" ".join(added_words)).shape[0] <= self.shape[0]:
                 if counter + len(added_words) == len(words):
                     break
 
@@ -190,11 +265,22 @@ class TextRenderer:
             if len(added_words) > 1:
                 added_words.pop()
 
-            counter += len(added_words)
-            output.append(self.text(" ".join(added_words), align))
+            if len(added_words) == 0:
+                output.append(self.text(""))
+            else:
+                counter += len(added_words)
+                output.append(self.text(" ".join(added_words), align))
 
         return output
 
 
-ADAFRUIT_5X7 = Font(ADAFRUIT_5X7_DATA, 255, 8)
-ADAFRUIT_5X7_KERN = Font(ADAFRUIT_5X7_DATA, 255, 8, kern=True)
+ADAFRUIT_5X7 = BinaryFont(ADAFRUIT_5X7_DATA, height=8)
+ADAFRUIT_5X7_KERN = BinaryFont(ADAFRUIT_5X7_DATA, space_width=1, height=8, kern=True)
+
+# this is not bundled, but can be found from a default minecraft texture pack
+#  (e.g. https://www.curseforge.com/minecraft/texture-packs/vanilladefault)
+#  as assets/minecraft/textures/font/ascii.png
+minecraft_font_path = pathlib.Path(__file__).parent.joinpath("minecraft_font.png")
+MINECRAFT = None
+if minecraft_font_path.exists():
+    MINECRAFT = BitmapFont(minecraft_font_path, space_width=1)
