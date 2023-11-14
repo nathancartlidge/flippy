@@ -6,6 +6,7 @@ from time import sleep
 from typing import Optional
 
 from serial import Serial
+from serial.rfc2217 import Serial as RemoteSerial
 import numpy as np
 
 
@@ -20,10 +21,18 @@ class BaseSerialComms:
     def __init__(self, port: str, address: int = 0):
         if port == "MOCK":
             self._serial = None
+        elif port.startswith("rfc2217://"):
+            if not port.endswith(":2217") and "?" not in port:
+                port += ":2217"
+            self._serial = RemoteSerial(port, baudrate=4800)
         else:
-            self._serial = Serial(port, baudrate=4800)  # todo: can this be increased?
+            self._serial = Serial(port, baudrate=4800)
         self._logger = logging.getLogger("Comms")
         self._address = address
+
+    def close(self):
+        if self._serial:
+            self._serial.close()
 
     @property
     def address(self):
