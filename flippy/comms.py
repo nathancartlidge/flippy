@@ -50,7 +50,7 @@ class BaseSerialComms:
             packet += payload
 
         packet += b"\x03"
-        packet += self._to_ascii_hex(self._checksum(packet))
+        packet += self._to_ascii_hex(self._checksum(packet), full_byte=True)
 
         if self._serial:
             self._serial.write(packet)
