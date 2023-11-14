@@ -3,6 +3,7 @@ from sys import argv
 from argparse import ArgumentParser
 from serial.tools.list_ports import comports
 
+from demo.life import LifeDemo
 from demo.text import ClockDemo, TextDemo, MultiTextDemo
 from flippy.comms import SerialComms
 from flippy.sign import Sign
@@ -42,7 +43,7 @@ if __name__ == "__main__":
     comms = SerialComms(port=args.port, address=args.address)
     sign = Sign(shape=(int(args.width), int(args.height)), comms=comms)
 
-    demos = [TextDemo, ClockDemo, MultiTextDemo]
+    demos = [TextDemo, ClockDemo, MultiTextDemo, LifeDemo]
     print("Options:")
     for i, demo in enumerate(demos):
         print(f"{i:2}: {demo.__name__}")
