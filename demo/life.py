@@ -36,6 +36,3 @@ class LifeDemo(Demo):
             update_time = time.monotonic() - start_update
             time.sleep(max(0.3, 0.75 - update_time))
         input("Press enter to continue...")
-
-    def cleanup(self):
-        self._sign.clear()

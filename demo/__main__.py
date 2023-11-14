@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 from serial.tools.list_ports import comports
 
 from demo.life import LifeDemo
+from demo.lyrics import LyricsDemo
 from demo.text import ClockDemo, TextDemo, MultiTextDemo
 from flippy.comms import SerialComms
 from flippy.sign import Sign
@@ -43,10 +44,13 @@ if __name__ == "__main__":
     comms = SerialComms(port=args.port, address=args.address)
     sign = Sign(shape=(int(args.width), int(args.height)), comms=comms)
 
-    demos = [TextDemo, ClockDemo, MultiTextDemo, LifeDemo]
-    print("Options:")
+    demos = [TextDemo, ClockDemo, MultiTextDemo, LifeDemo, LyricsDemo]
+    print("Demos Available:")
     for i, demo in enumerate(demos):
-        print(f"{i:2}: {demo.__name__}")
+        print(f"{i:2}: {demo.__name__.replace('Demo', '')}")
     demo_idx = int(input("Choose an option index: "))
-    demo = demos[demo_idx](sign, comms)
-    demo.execute()
+    if demo_idx < 0 or demo_idx >= len(demos):
+        print("Error: Bad Index")
+    else:
+        demo = demos[demo_idx](sign, comms)
+        demo.execute()

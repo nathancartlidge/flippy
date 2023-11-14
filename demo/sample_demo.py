@@ -21,7 +21,7 @@ class Demo:
         """The main code of the demo"""
         ...
 
-    @abstractmethod
     def cleanup(self):
         """Close all handlers, reset the sign to a default state"""
-        ...
+        self._sign.clear()
+        self._comms.close()

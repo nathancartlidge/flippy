@@ -7,6 +7,7 @@ import pathlib
 from abc import abstractmethod
 from enum import Enum
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 from PIL import Image
@@ -250,7 +251,8 @@ class TextRenderer:
 
         return screen
 
-    def long_text(self, text: str, align: TextAlign = TextAlign.CENTER) -> list[np.ndarray]:
+    def long_text(self, text: str, align: TextAlign = TextAlign.CENTER, allow_clip: bool = True) \
+            -> list[tuple[Optional[np.ndarray], str]]:
         """Splits a long message into multiple screens of text"""
         words = text.split(" ")
         if len(words) == 0:
@@ -260,20 +262,21 @@ class TextRenderer:
         counter = 0
         while counter < len(words):
             added_words = [words[counter]]
-            while self._font.string(" ".join(added_words)).shape[0] <= self.shape[0]:
+            while text_fits := (self._font.string(" ".join(added_words)).shape[0] <= self.shape[0]):
                 if counter + len(added_words) == len(words):
                     break
 
                 added_words.append(words[counter + len(added_words)])
 
-            if len(added_words) > 1:
+            if not text_fits and len(added_words) > 1:
                 added_words.pop()
 
             if len(added_words) == 0:
-                output.append(self.text(""))
+                output.append((None, ""))
             else:
                 counter += len(added_words)
-                output.append(self.text(" ".join(added_words), align))
+                screen_words = " ".join(added_words)
+                output.append((self.text(screen_words, align, allow_clip=allow_clip), screen_words))
 
         return output
 

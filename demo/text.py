@@ -34,9 +34,6 @@ class ClockDemo(Demo):
             update_time = time.monotonic() - update_time
             time.sleep(1 - update_time)
 
-    def cleanup(self):
-        self._sign.clear()
-
 
 class MultiTextDemo(Demo):
     """Demo of displaying long text on the sign"""
