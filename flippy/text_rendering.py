@@ -11,13 +11,14 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from flippy.font_data import ADAFRUIT_5X7_DATA
+from flippy.font_data import ADAFRUIT_5X7_DATA, NEWBASIC_3X5_DATA, WENDY_3X5_DATA
 
 
 class Font:
     """Class to store fonts"""
-    def __init__(self, height: int, num_chars: int, space_width: int = 2):
+    def __init__(self, height: int, num_chars: int, space_width: int = 1, offset: int = 0):
         self._height = height
+        self._offset = offset
         self._num_chars = num_chars
         self._space_width = space_width
 
@@ -73,10 +74,10 @@ class Font:
 class BinaryFont(Font):
     """Fonts adapted from https://github.com/greiman/SSD1306Ascii data"""
     def __init__(self, font_data: list, height: int, space_width: int = 2,
-                 alternate_mode: bool = False, kern: bool = False):
+                 alternate_mode: bool = False, kern: bool = False, offset: int = 0):
         if height > 16:
             raise ValueError("This class does not yet support fonts larger than 16px tall")
-        super().__init__(height, len(font_data), space_width)
+        super().__init__(height, len(font_data), space_width=space_width, offset=offset)
 
         self._alternate_mode = alternate_mode
         self._font_data = font_data
@@ -84,10 +85,10 @@ class BinaryFont(Font):
 
     def char(self, character):
         """Font data for a particular character"""
-        if ord(character) > self.num_chars:
-            raise ValueError("Error: invalid char!")
+        if ord(character) - self._offset > self.num_chars:
+            raise ValueError(f"Error: invalid char '{character}'!")
 
-        raw_data = self._font_data[ord(character)]
+        raw_data = self._font_data[ord(character) - self._offset]
 
         if self.height <= 8:
             if character == " ":
@@ -164,11 +165,14 @@ class BitmapFont(Font):
 
     def char(self, character):
         """Font data for a particular character"""
-        if ord(character) > self.num_chars:
-            raise ValueError("Error: invalid char!")
+        if ord(character) - self._offset > self.num_chars:
+            raise ValueError(f"Error: invalid char '{character}'!")
+        elif character == " ":
+            return np.zeros((self._space_width, self.height), dtype=np.uint8)
 
-        x = self._size * (ord(character) % self._dimensions[0])
-        y = self._size * (ord(character) // self._dimensions[0])
+        char_offset = ord(character) - self._offset
+        x = self._size * (char_offset % self._dimensions[0])
+        y = self._size * (char_offset // self._dimensions[0])
         pixels = np.array(self._bitmap)[y:y+self._size, x:x+self._size]
 
         if self._kern:
@@ -274,13 +278,22 @@ class TextRenderer:
         return output
 
 
-ADAFRUIT_5X7 = BinaryFont(ADAFRUIT_5X7_DATA, height=8)
+ADAFRUIT_5X7 = BinaryFont(ADAFRUIT_5X7_DATA, space_width=1, height=8)
 ADAFRUIT_5X7_KERN = BinaryFont(ADAFRUIT_5X7_DATA, space_width=1, height=8, kern=True)
+NEWBASIC_3X5 = BinaryFont(NEWBASIC_3X5_DATA, space_width=1, height=8, offset=32)
+NEWBASIC_3X5_KERN = BinaryFont(NEWBASIC_3X5_DATA, space_width=1, height=8, kern=True, offset=32)
+WENDY_3X5 = BinaryFont(WENDY_3X5_DATA, space_width=1, height=5, offset=32)
+WENDY_3X5_KERN = BinaryFont(WENDY_3X5_DATA, space_width=1, height=5, kern=True, offset=32)
 
 # this is not bundled, but can be found from a default minecraft texture pack
 #  (e.g. https://www.curseforge.com/minecraft/texture-packs/vanilladefault)
 #  as assets/minecraft/textures/font/ascii.png
-minecraft_font_path = pathlib.Path(__file__).parent.joinpath("minecraft_font.png")
 MINECRAFT = None
+minecraft_font_path = pathlib.Path(__file__).parent.joinpath("minecraft_font.png")
 if minecraft_font_path.exists():
     MINECRAFT = BitmapFont(minecraft_font_path, space_width=1)
+
+MINECRAFT_ENCHANT = None
+minecraft_enchant_font_path = pathlib.Path(__file__).parent.joinpath("minecraft_enchant_font.png")
+if minecraft_enchant_font_path.exists():
+    MINECRAFT_ENCHANT = BitmapFont(minecraft_enchant_font_path, space_width=1)
