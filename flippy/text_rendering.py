@@ -207,7 +207,7 @@ class BitmapFont(Font):
 class TextAlign(Enum):
     LEFT = 0
     RIGHT = 1
-    CENTER = 2
+    CENTRE = 2
 
 
 class TextRenderer:
@@ -223,7 +223,7 @@ class TextRenderer:
     def shape(self):
         return self._shape
 
-    def text(self, text: str, align: TextAlign = TextAlign.CENTER,
+    def text(self, text: str, align: TextAlign = TextAlign.CENTRE,
              allow_clip: bool = False):
         """renders a single screen of text"""
         screen = np.full(self.shape, False, dtype=bool)
@@ -243,7 +243,7 @@ class TextRenderer:
             screen[0:width, 0:height] = rendered_text
         elif align is TextAlign.RIGHT:
             screen[self.shape[0] - width:self.shape[0], 0:height] = rendered_text
-        elif align is TextAlign.CENTER:
+        elif align is TextAlign.CENTRE:
             start = (self.shape[0] - width) // 2
             screen[start:start+width, 0:height] = rendered_text
         else:
@@ -251,7 +251,7 @@ class TextRenderer:
 
         return screen
 
-    def long_text(self, text: str, align: TextAlign = TextAlign.CENTER, allow_clip: bool = True) \
+    def long_text(self, text: str, align: TextAlign = TextAlign.CENTRE, allow_clip: bool = True) \
             -> list[tuple[Optional[np.ndarray], str]]:
         """Splits a long message into multiple screens of text"""
         words = text.split(" ")

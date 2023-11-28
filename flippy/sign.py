@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 import numpy as np
 from flippy.comms import SerialComms
@@ -19,6 +20,7 @@ class Sign:
         self._shape = shape
         self._comms = comms
         self._state = np.full(shape, False, dtype=bool)
+        self._current_state = None
         self._up_to_date = False
 
     @property
@@ -27,11 +29,16 @@ class Sign:
         return self._shape
 
     @property
+    def current_state(self):
+        """The current state of the physical sign."""
+        return self._current_state
+
+    @property
     def state(self):
         """
-        The current state of the sign in memory (as a numpy array). This may not
-        reflect the current state of the sign if the property `up_to_date` is
-        not true
+        The current state of the sign in memory. This may not reflect the
+        current state of the sign if the property `up_to_date` is not true -
+        see current_state
         """
         return self._state
 
@@ -44,11 +51,15 @@ class Sign:
         return self._up_to_date
 
     @state.setter
-    def state(self, new_state: np.ndarray, enforce_shape: bool = True):
+    def state(self, new_state: Optional[np.ndarray], enforce_shape: bool = True):
         """
         Update the state to a new value. Note that this does not update the
         sign: you must call `update` for that
         """
+        if new_state is None:
+            self.clear()
+            return
+
         if enforce_shape and new_state.shape != self.shape:
             raise ValueError("Incorrect Shape Provided! (%d x %d) instead of (%d x %d)",
                              *new_state.shape[0:2], *self.shape)
@@ -61,18 +72,25 @@ class Sign:
         # update the state
         self._state = np.full(self.shape, False, dtype=bool)
         self._state[0:min_width, 0:min_height] = new_state_subset
-        self._up_to_date = False
+
+        if self._current_state is not None and np.array_equal(self._state, self._current_state):
+            self._up_to_date = True
+        else:
+            self._up_to_date = False
 
     def clear(self):
         """Resets the sign so that all pixels are disabled"""
         self._comms.clear()
         self._state = np.full(self.shape, False, dtype=bool)
+        self._current_state = np.full(self.shape, False, dtype=bool)
         self._up_to_date = True
 
-    def update(self):
+    def update(self, force: bool = False):
         """Updates the sign to match `state`"""
-        self._comms.update(self.state)
-        self._up_to_date = True
+        if not self._up_to_date or force:
+            self._comms.update(self.state)
+            self._current_state = self._state.copy()
+            self._up_to_date = True
 
     def test_pattern(self):
         """
