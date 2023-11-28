@@ -7,6 +7,7 @@ from flippy.sign import Sign
 from flippy.text_rendering import MINECRAFT, TextRenderer
 
 from utils.fetch_lyrics import get_lyrics, Lyrics
+from utils.lyrics_gui import Track, LyricsGui
 
 
 class LyricsDemo(Demo):
@@ -26,6 +27,8 @@ class LyricsDemo(Demo):
 
     def _split_into_screens(self, lyrics: list):
         timed_screens = []
+        timed_lyrics = []
+
         for i, (t, line) in enumerate(lyrics):
             if i + 1 != len(lyrics):
                 next_t = lyrics[i + 1][0]
@@ -36,8 +39,9 @@ class LyricsDemo(Demo):
             for j, (screen, screen_text) in enumerate(screens):
                 screen_time = t + min(5, next_t - t) * (j / len(screens))
                 timed_screens.append((screen_time, screen))
+                timed_lyrics.append((screen_time, screen_text))
 
-        return timed_screens
+        return timed_screens, timed_lyrics
 
     def run(self):
         """The main code of the demo"""
@@ -46,27 +50,14 @@ class LyricsDemo(Demo):
             print("Unable to fetch lyrics")
             return
 
-        screens = self._split_into_screens(self._process_lyrics(lyrics))
+        screens, lyrics = self._split_into_screens(self._process_lyrics(lyrics))
+        track = Track(name=self._title,
+                      artist=self._artist,
+                      lyrics=lyrics,
+                      screens=screens)
 
         input("Press enter to continue...")
 
-        start_time = monotonic()
-        while screens:
-            delta = monotonic() - start_time
-            time, screen = screens.pop(0)
-
-            print(f"t={delta}, u={time}")
-            sleep(max(0.25, time - delta))
-
-            delta = monotonic() - start_time
-            if delta - time > 0.4:
-                print(f"running behind: {delta - time:.2f}s")
-
-            if screen is None:
-                self._sign.clear()
-            else:
-                self._sign.state = screen
-                self._sign.preview()
-                self._sign.update()
-
+        gui = LyricsGui(track)
+        gui.loop(self._sign)
         sleep(5)
