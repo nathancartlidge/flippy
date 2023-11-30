@@ -25,7 +25,7 @@ class LyricsDemo(Demo):
             lyrics.lyrics.splitlines()
         ))
 
-    def _split_into_screens(self, lyrics: list):
+    def _split_into_screens(self, lyrics: list, blank: bool = True):
         timed_screens = []
         timed_lyrics = []
 
@@ -40,6 +40,10 @@ class LyricsDemo(Demo):
                 screen_time = t + min(5, next_t - t) * (j / len(screens))
                 timed_screens.append((screen_time, screen))
                 timed_lyrics.append((screen_time, screen_text))
+
+            if blank and next_t - t > 10:
+                timed_screens.append((t + 6, None))
+                timed_lyrics.append((t + 6, "♫"))
 
         return timed_screens, timed_lyrics
 
@@ -60,4 +64,3 @@ class LyricsDemo(Demo):
 
         gui = LyricsGui(track)
         gui.loop(self._sign)
-        sleep(5)
