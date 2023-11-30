@@ -1,3 +1,6 @@
 .venv
 .idea
 __pycache__
+lyrics/**
+flippy/*_font.png
+*.ipynb
