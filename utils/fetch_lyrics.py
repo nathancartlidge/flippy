@@ -61,7 +61,7 @@ def filter_lyrics(lyrics: str):
 
 
 def get_lyrics(artist: str, title: str, save: bool = True) -> Optional[Lyrics]:
-    song = Song(artist, title)
+    song = Song(artist.strip(), title.strip())
 
     for service in SERVICES:
         print("> trying", service.__name__.replace("_", ""))
@@ -77,7 +77,7 @@ def get_lyrics(artist: str, title: str, save: bool = True) -> Optional[Lyrics]:
 
 
 def save_lyrics(song: Song, lyrics: str):
-    filename = "".join([x if x.isalnum() or x in (" ", "-") else "?" for x in f"{song.name} -- {song.artist}"]) + ".lrc"
+    filename = "".join([x if x.isalnum() or x in (" ", "-") else "_" for x in f"{song.name} -- {song.artist}"]) + ".lrc"
     os.makedirs("lyrics", exist_ok=True)
     file = pathlib.Path("lyrics").joinpath(filename)
     with open(file, "w", encoding="utf-8") as f:
