@@ -42,13 +42,13 @@ class LyricsGui:
             candidates = self._track.lyrics
             last_index = -1
 
-        for t, _ in candidates:
-            if t <= time:
+        for i, (t, _) in enumerate(candidates):
+            if t <= time and i != len(candidates):
                 last_index += 1
             else:
                 return last_index
 
-        return len(self._track.lyrics)
+        return len(self._track.lyrics) - 1
 
     def lyrics(self, index: int):
         def _safe_get(i):
@@ -75,7 +75,7 @@ class LyricsGui:
                 print(self.term.clear_eol)
         return index
 
-    def loop(self, driver: Optional[Sign]):
+    def loop(self, driver: Optional[Sign] = None):
         print(f"{self.term.blue}Now Playing: {self._track.name}{self.term.normal}\n\n\n\n")
         end_time = self._track.lyrics[-1][0] + 5
         start_time = monotonic()
@@ -98,6 +98,10 @@ class LyricsGui:
                     if key.is_sequence:
                         delta = monotonic() - start_time
                         if key.code == self.term.KEY_LEFT:
+                            if index == len(self._track.lyrics):
+                                offset = delta - self._track.lyrics[index - 2][0]
+                                start_time += offset
+                                index -= 2
                             if index > 0:
                                 offset = delta - self._track.lyrics[index - 1][0]
                                 start_time += offset
