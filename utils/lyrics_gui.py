@@ -17,9 +17,17 @@ class Track:
 
 
 class LyricsGui:
-    def __init__(self, track: Track):
+    def __init__(self, track: Optional[Track]):
         self.term = blessed.Terminal()
         self._track = track
+
+    @property
+    def track(self):
+        return self._track
+
+    @track.setter
+    def track(self, value):
+        self._track = value
 
     def progress(self, time):
         end_time = self._track.lyrics[-1][0] + 5
@@ -34,9 +42,9 @@ class LyricsGui:
             progress_part = "█" * int(blocks) + " " * (width - int(blocks))
         return f"{progress_part} [{time_part}]"
 
-    def get_index(self, time: float, last_index: int = -1) -> int:
+    def get_index(self, time: float, last_index: Optional[int] = -1) -> int:
         """returns the most recent lyric (the lyric with the largest time that is *not* larger than the current time"""
-        if last_index >= 0:
+        if last_index is not None and last_index >= 0:
             candidates = self._track.lyrics[last_index + 1:]
         else:
             candidates = self._track.lyrics
@@ -58,7 +66,10 @@ class LyricsGui:
             return [None, None, None]
         return [_safe_get(index - 1), _safe_get(index), _safe_get(index + 1)]
 
-    def show(self, time: float, last_index: Optional[int]):
+    def show(self, time: float, last_index: Optional[int] = None):
+        if self.track is None:
+            raise ValueError()
+
         # reset
         print(self.progress(time))
 
@@ -76,6 +87,9 @@ class LyricsGui:
         return index
 
     def loop(self, driver: Optional[Sign] = None):
+        if self.track is None:
+            raise ValueError()
+
         print(f"{self.term.blue}Now Playing: {self._track.name}{self.term.normal}\n\n\n\n")
         end_time = self._track.lyrics[-1][0] + 5
         start_time = monotonic()

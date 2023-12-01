@@ -15,4 +15,3 @@ python -m demo [port] [w] [h]
 - `flippy/`: driver code, text handling
 - `demo/`: various examples of what you can use the boards for, run `python -m demo [port] [w] [h]` to pick from them
 - `utils/`: helper functionality for demos
-- `server/`: web server for the board

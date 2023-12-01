@@ -15,8 +15,7 @@ class LyricsDemo(Demo):
         super().__init__(sign, comms)
 
         self._text = TextRenderer(MINECRAFT, sign.shape)
-        self._title = input("Song Title: ")
-        self._artist = input("Song Artist: ")
+        self._title, self._artist = None, None
 
     @staticmethod
     def _process_lyrics(lyrics: Lyrics):
@@ -49,6 +48,9 @@ class LyricsDemo(Demo):
 
     def run(self):
         """The main code of the demo"""
+        self._title = input("Song Title: ")
+        self._artist = input("Song Artist: ")
+
         lyrics = get_lyrics(self._artist, self._title)
         if lyrics is None:
             print("Unable to fetch lyrics")

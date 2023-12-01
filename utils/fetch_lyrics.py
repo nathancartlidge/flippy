@@ -152,7 +152,11 @@ def _megalobiz(song: Song):
     })
     search_results = requests.get(search_url)
     soup = BeautifulSoup(search_results.text, 'html.parser')
-    result_links = soup.find(id="list_entity_container").find_all("a", class_="entity_name")
+    results = soup.find(id="list_entity_container")
+    if results:
+        result_links = results.find_all("a", class_="entity_name")
+    else:
+        result_links = []
 
     for result_link in result_links:
         lower_title = result_link.get_text().lower()

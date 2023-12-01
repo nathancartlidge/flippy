@@ -5,6 +5,7 @@ from serial.tools.list_ports import comports
 
 from demo.life import LifeDemo
 from demo.lyrics import LyricsDemo
+from demo.autolyrics import AutoLyricsDemo
 from demo.text import ClockDemo, TextDemo, MultiTextDemo
 from flippy.comms import SerialComms
 from flippy.sign import Sign
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     comms = SerialComms(port=args.port, address=args.address)
     sign = Sign(shape=(int(args.width), int(args.height)), comms=comms)
 
-    demos = [TextDemo, ClockDemo, MultiTextDemo, LifeDemo, LyricsDemo]
+    demos = [TextDemo, ClockDemo, MultiTextDemo, LifeDemo, LyricsDemo, AutoLyricsDemo]
     print("Demos Available:")
     for i, demo in enumerate(demos):
         print(f"{i:2}: {demo.__name__.replace('Demo', '')}")
