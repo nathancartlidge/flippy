@@ -52,12 +52,20 @@ class SpotifyTrack:
 
 
 class AutoLyricsDemo(LyricsDemo):
+    """
+    Attempt to automatically acquire lyrics from Spotify, using a bot with the capability to read the currently playing
+    song.
+    """
     def __init__(self, sign: Sign, comms: SerialComms):
         super().__init__(sign, comms)
 
         self._text = TextRenderer(MINECRAFT, sign.shape)
         load_dotenv()
-        self._auth = SpotifyOAuth(scope="user-read-currently-playing", redirect_uri="http://localhost:8080")
+        try:
+            self._auth = SpotifyOAuth(scope="user-read-currently-playing", redirect_uri="http://localhost:8080")
+        except spotipy.oauth2.SpotifyOauthError:
+            print("Note: You can specify SPOTIPY_CLIENT_ID and SPOTIPY_CLIENT_SECRET in a .env file")
+            raise
         self._spotify = spotipy.Spotify(auth_manager=self._auth)
         self._running = True
 
