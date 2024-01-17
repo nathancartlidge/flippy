@@ -56,6 +56,9 @@ class LyricsGui:
             else:
                 return last_index
 
+        if time > self._track.lyrics[-1][0] + 5:
+            return len(self._track.lyrics)
+
         return len(self._track.lyrics) - 1
 
     def lyrics(self, index: int):

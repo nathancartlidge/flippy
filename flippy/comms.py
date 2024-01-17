@@ -103,7 +103,7 @@ class SerialComms(BaseSerialComms):
         self._logger.debug("Starting test pattern")
         self.execute(Commands.START_TEST_PATTERN)
         try:
-            sleep(15)
+            sleep(10)
         except KeyboardInterrupt:
             self._logger.debug("Test pattern aborted")
         finally:

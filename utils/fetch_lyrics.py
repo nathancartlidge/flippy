@@ -107,11 +107,49 @@ def lyrics_service(_func=None, *, enabled=True):
 
 @lyrics_service
 def _local(song: Song):
-    filename = "".join([x if x.isalnum() or x in (" ", "-") else "?" for x in f"{song.name} -- {song.artist}"]) + ".lrc"
+    filename = "".join([x if x.isalnum() or x in (" ", "-") else "_" for x in f"{song.name} -- {song.artist}"]) + ".lrc"
     file = pathlib.Path("lyrics").joinpath(filename)
     if file.exists():
         with open(file, "r", encoding="utf-8") as f:
             return "\n".join(f.readlines()), str(file.resolve()), True
+
+
+@lyrics_service
+def _megalobiz(song: Song):
+    search_url = "https://www.megalobiz.com/search/all?%s" % parse.urlencode({
+        "qry": f"{song.artist.replace('/', '')} {song.name.replace('/', '')}",
+        "display": "more"
+    })
+    search_results = requests.get(search_url)
+    soup = BeautifulSoup(search_results.text, 'html.parser')
+    results = soup.find(id="list_entity_container")
+    if results:
+        result_links = results.find_all("a", class_="entity_name")
+    else:
+        result_links = []
+
+    for result_link in result_links:
+        lower_title = result_link.get_text().lower()
+        if song.artist.replace('/', '').lower() in lower_title and song.name.replace('/', '').lower() in lower_title:
+            url = f"https://www.megalobiz.com{result_link['href']}"
+            possible_text = requests.get(url)
+            soup = BeautifulSoup(possible_text.text, 'html.parser')
+
+            lrc = soup.find("div", class_="lyrics_details").span.get_text()
+
+            return lrc, possible_text.url, True
+
+    # perform a less intensive search if we can't find an exact match
+    # for result_link in result_links:
+    #     lower_title = result_link.get_text().lower()
+    #     if song.name.replace('/', '').lower() in lower_title:
+    #         url = f"https://www.megalobiz.com{result_link['href']}"
+    #         possible_text = requests.get(url)
+    #         soup = BeautifulSoup(possible_text.text, 'html.parser')
+    #
+    #         lrc = soup.find("div", class_="lyrics_details").span.get_text()
+    #
+    #         return lrc, possible_text.url, True
 
 
 @lyrics_service
@@ -142,44 +180,6 @@ def _rentanadviser(song: Song):
                                     cookies=search_results.cookies)
 
                 return lrc.text, possible_text.url, True
-
-
-@lyrics_service
-def _megalobiz(song: Song):
-    search_url = "https://www.megalobiz.com/search/all?%s" % parse.urlencode({
-        "qry": f"{song.artist.replace('/', '')} {song.name.replace('/', '')}",
-        "display": "more"
-    })
-    search_results = requests.get(search_url)
-    soup = BeautifulSoup(search_results.text, 'html.parser')
-    results = soup.find(id="list_entity_container")
-    if results:
-        result_links = results.find_all("a", class_="entity_name")
-    else:
-        result_links = []
-
-    for result_link in result_links:
-        lower_title = result_link.get_text().lower()
-        if song.artist.replace('/', '').lower() in lower_title and song.name.replace('/', '').lower() in lower_title:
-            url = f"https://www.megalobiz.com{result_link['href']}"
-            possible_text = requests.get(url)
-            soup = BeautifulSoup(possible_text.text, 'html.parser')
-
-            lrc = soup.find("div", class_="lyrics_details").span.get_text()
-
-            return lrc, possible_text.url, True
-
-    # perform a less intensive search if we can't find an exact match
-    for result_link in result_links:
-        lower_title = result_link.get_text().lower()
-        if song.name.replace('/', '').lower() in lower_title:
-            url = f"https://www.megalobiz.com{result_link['href']}"
-            possible_text = requests.get(url)
-            soup = BeautifulSoup(possible_text.text, 'html.parser')
-
-            lrc = soup.find("div", class_="lyrics_details").span.get_text()
-
-            return lrc, possible_text.url, True
 
 
 def _lyricsify(song: Song):
