@@ -1,6 +1,7 @@
 import re
 from time import sleep, monotonic
 from typing import Optional
+from argparse import ArgumentParser
 from threading import Thread
 from dataclasses import dataclass
 
@@ -56,7 +57,7 @@ class AutoLyricsDemo(LyricsDemo):
     Attempt to automatically acquire lyrics from Spotify, using a bot with the capability to read the currently playing
     song.
     """
-    def __init__(self, sign: Sign, comms: SerialComms):
+    def __init__(self, sign: Sign, comms: SerialComms, lazy: bool = False):
         super().__init__(sign, comms)
 
         self._text = TextRenderer(MINECRAFT, sign.shape)
@@ -69,6 +70,7 @@ class AutoLyricsDemo(LyricsDemo):
         self._spotify = spotipy.Spotify(auth_manager=self._auth)
         self._running = True
 
+        self._lazy = lazy
         self._track: Optional[SpotifyTrack] = None
 
     def _spotify_watcher(self):
@@ -78,8 +80,18 @@ class AutoLyricsDemo(LyricsDemo):
             track = self._spotify.currently_playing()
             if track:
                 current_track = SpotifyTrack.from_track(track)
-                if self._track != current_track:
-                    # track has changed, fetch the new lyrics
+                if self._track != current_track:  # track has changed
+                    self._track = None
+
+                    # show the title
+                    self._sign.clear()
+                    for screen, text in self._text.long_text(current_track.title + " by " + current_track.artist):
+                        self._sign.state = screen
+                        self._sign.update()
+                        sleep(1)
+                    self._sign.clear()
+
+                    # fetch the new lyrics
                     self._track = current_track
                     self._track.lyrics_source = LYRICS_LOADING
                     lyrics = get_lyrics(self._track.artist, self._track.title)
@@ -98,6 +110,9 @@ class AutoLyricsDemo(LyricsDemo):
                         self._track.is_playing = current_track.is_playing
             else:
                 self._track = None
+                if self._lazy and self._comms.is_open:
+                    self._sign.clear()
+                    self._comms.close()
 
             # fast exit
             for i in range(4):
@@ -178,3 +193,18 @@ class AutoLyricsDemo(LyricsDemo):
             input("Press enter to exit...")
         finally:
             self._running = False
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument("port", help="port on which screen is connected")
+    parser.add_argument("width", help="width of your screen")
+    parser.add_argument("height", help="height of your screen")
+    parser.add_argument("--address", default=0, help="display address")
+    args = parser.parse_args()
+
+    comms = SerialComms(port=args.port, address=args.address, lazy=True)
+    sign = Sign(shape=(int(args.width), int(args.height)), comms=comms)
+
+    demo = AutoLyricsDemo(sign, comms, lazy=True)
+    demo.execute()

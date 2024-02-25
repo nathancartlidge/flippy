@@ -18,21 +18,46 @@ class Commands(Enum):
 
 class BaseSerialComms:
     """Low-level serial comms, implementing basic communication protocols"""
-    def __init__(self, port: str, address: int = 0):
-        if port == "MOCK":
-            self._serial = None
-        elif port.startswith("rfc2217://"):
-            if not port.endswith(":2217") and "?" not in port:
-                port += ":2217"
-            self._serial = RemoteSerial(port, baudrate=4800)
+    MOCK = "MOCK"
+
+    def __init__(self, port: str, address: int = 0, lazy: bool = False) -> None:
+        self._port = port
+        if not lazy:
+            self.open()
         else:
-            self._serial = Serial(port, baudrate=4800)
+            self._serial = None
         self._logger = logging.getLogger("Comms")
         self._address = address
 
+    def open(self):
+        if self._serial is None:
+            if self._port == self.MOCK:
+                self._serial = self.MOCK
+            elif self._port.startswith("rfc2217://"):
+                if not self._port.endswith(":2217") and "?" not in self._port:
+                    self._port += ":2217"
+                self._serial = RemoteSerial(self._port, baudrate=4800)
+            else:
+                self._serial = Serial(self._port, baudrate=4800)
+            return True
+        else:
+            return False
+
     def close(self):
-        if self._serial:
+        if self._serial and not self.is_mock:
             self._serial.close()
+            self._serial = None
+            return True
+        else:
+            return False
+
+    @property
+    def is_mock(self):
+        return self._serial == self.MOCK
+
+    @property
+    def is_open(self):
+        return self._serial is not None
 
     @property
     def address(self):
@@ -61,10 +86,13 @@ class BaseSerialComms:
         packet += b"\x03"
         packet += self._to_ascii_hex(self._checksum(packet), full_byte=True)
 
-        if self._serial:
-            self._serial.write(packet)
-        else:
+        if not self.is_open:
+            self.open()
+
+        if self.is_mock:
             self._logger.info("MOCK WRITE: %s", binascii.hexlify(packet))
+        else:
+            self._serial.write(packet)
 
     @staticmethod
     def _to_ascii_hex(value: int | bytes, full_byte: bool = False) -> bytes:
