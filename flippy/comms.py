@@ -22,14 +22,16 @@ class BaseSerialComms:
 
     def __init__(self, port: str, address: int = 0, lazy: bool = False) -> None:
         self._port = port
+        self._logger = logging.getLogger("Comms")
+
+        self._serial = None
         if not lazy:
             self.open()
-        else:
-            self._serial = None
-        self._logger = logging.getLogger("Comms")
+
         self._address = address
 
     def open(self):
+        self._logger.debug("Connecting to serial")
         if self._serial is None:
             if self._port == self.MOCK:
                 self._serial = self.MOCK
@@ -44,6 +46,7 @@ class BaseSerialComms:
             return False
 
     def close(self):
+        self._logger.debug("Disconnecting from serial")
         if self._serial and not self.is_mock:
             self._serial.close()
             self._serial = None

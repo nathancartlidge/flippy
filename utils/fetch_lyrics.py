@@ -26,6 +26,8 @@ UA = "Mozilla/5.0 (Maemo; Linux armv7l; rv:10.0.1) Gecko/20100101 Firefox/10.0.1
 class Song:
     artist: str
     name: str
+    duration: Optional[int] = None
+    album: Optional[str] = None
 
 
 @dataclasses.dataclass
@@ -60,8 +62,9 @@ def filter_lyrics(lyrics: str):
     return "\n".join(output)
 
 
-def get_lyrics(artist: str, title: str, save: bool = True) -> Optional[Lyrics]:
-    song = Song(artist.strip(), title.strip())
+def get_lyrics(artist: str, title: str, duration: Optional[int] = None, album: Optional[str] = None,
+               save: bool = True) -> Optional[Lyrics]:
+    song = Song(artist.strip(), title.strip(), duration=duration, album=album)
 
     for service in SERVICES:
         print("> trying", service.__name__.replace("_", ""))
@@ -112,6 +115,22 @@ def _local(song: Song):
     if file.exists():
         with open(file, "r", encoding="utf-8") as f:
             return "\n".join(f.readlines()), str(file.resolve()), True
+
+@lyrics_service
+def _lrclib(song: Song):
+    if song.duration is None:
+        return None
+    if song.album is None:
+        query_url = f"https://lrclib.net/api/get?artist_name={song.artist}&album_name=%20&track_name={song.name}&duration={song.duration}"
+    else:
+        query_url = f"https://lrclib.net/api/get?artist_name={song.artist}&album_name={song.album}&track_name={song.name}&duration={song.duration}"
+
+    rq = requests.get(query_url)
+    if rq.status_code == 200:
+        response = rq.json()
+        lyrics = response.get("syncedLyrics", None)
+        if lyrics is not None:
+            return lyrics, f"https://lrclib.net/api/get/{response['id']}", True
 
 
 @lyrics_service
