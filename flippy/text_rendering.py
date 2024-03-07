@@ -45,14 +45,15 @@ class Font:
         """
         output = []
         for i, char in enumerate(string):
-            try:
-                representation = self.char(char)
-            except ValueError:
-                if not ignore_errors:
-                    raise
-                else:
-                    continue
-            output.extend(representation)
+            if ord(char) < 256:
+                try:
+                    representation = self.char(char)
+                except ValueError:
+                    if not ignore_errors:
+                        raise
+                    else:
+                        continue
+                output.extend(representation)
 
             if i != len(string) - 1:  # do not output a gap after the last character
                 # a one-pixel horizontal between letters
