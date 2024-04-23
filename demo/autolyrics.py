@@ -84,7 +84,7 @@ class AutoLyricsDemo(LyricsDemo):
 
         while self._running:
             track = self._spotify.currently_playing()
-            if track:
+            if track and track["item"]:  # ensure music is playing
                 current_track = SpotifyTrack.from_track(track)
                 if self._track != current_track:  # track has changed
                     self._track = current_track
@@ -123,15 +123,18 @@ class AutoLyricsDemo(LyricsDemo):
 
     def _fetch_lyrics(self, track: SpotifyTrack):
         """so it can be run in a thread"""
-        lyrics = get_lyrics(track.artist, track.title, album=track.album, duration=track.duration)
-        if self._track == track:
-            # track has not changed since starting to fetch the lyrics
-            if lyrics:
-                self._track.screens, self._track.lyrics = self._split_into_screens(self._process_lyrics(lyrics))
-                self._track.lyrics_source = lyrics.source
-            else:
-                self._track.screens, self._track.lyrics = None, None
-                self._track.lyrics_source = None
+        lyrics = None
+        try:
+            lyrics = get_lyrics(track.artist, track.title, album=track.album, duration=track.duration)
+        finally:
+            if self._track == track:
+                # track has not changed since starting to fetch the lyrics
+                if lyrics:
+                    self._track.screens, self._track.lyrics = self._split_into_screens(self._process_lyrics(lyrics))
+                    self._track.lyrics_source = lyrics.source
+                else:
+                    self._track.screens, self._track.lyrics = None, None
+                    self._track.lyrics_source = None
 
     def _handle_input(self, term, timeout, index):
         # controls - allow for skipping forwards/backwards

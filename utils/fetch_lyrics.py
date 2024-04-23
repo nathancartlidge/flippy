@@ -113,7 +113,7 @@ def _local(song: Song):
     filename = "".join([x if x.isalnum() or x in (" ", "-") else "_" for x in f"{song.name} -- {song.artist}"]) + ".lrc"
     file = pathlib.Path("lyrics").joinpath(filename)
     if file.exists():
-        with open(file, "r", encoding="utf-8") as f:
+        with open(file, "r", encoding="utf-8", errors="ignore") as f:
             return "\n".join(f.readlines()), str(file.resolve()), True
 
 @lyrics_service
