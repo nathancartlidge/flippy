@@ -215,6 +215,7 @@ class TextRenderer:
     def __init__(self, font: Font, shape: tuple[int, int]):
         self._font = font
         self._shape = shape
+        self._lines = self.shape[1] // font.height
 
     @property
     def font(self):
@@ -224,8 +225,7 @@ class TextRenderer:
     def shape(self):
         return self._shape
 
-    def text(self, text: str, align: TextAlign = TextAlign.CENTRE,
-             allow_clip: bool = False):
+    def text(self, text: str, align: TextAlign = TextAlign.CENTRE, line: int = 0, allow_clip: bool = False):
         """renders a single screen of text"""
         screen = np.full(self.shape, False, dtype=bool)
         if text == "":
@@ -235,18 +235,22 @@ class TextRenderer:
         if not allow_clip and rendered_text.shape[0] > screen.shape[0]:
             raise ValueError(f"Text '{text}' cannot fit on screen")
 
+        if line >= self._lines:
+            raise ValueError("Invalid Line Selected")
+
         width = min(screen.shape[0], rendered_text.shape[0])
         height = min(screen.shape[1], rendered_text.shape[1])
         rendered_text = rendered_text[0:width, 0:height]
 
-        # todo: allow offset y
+        y_start = line * self._font.height
+        y_end = (line + 1) * self._font.height
         if align is TextAlign.LEFT:
-            screen[0:width, 0:height] = rendered_text
+            screen[0:width, y_start:y_end] = rendered_text
         elif align is TextAlign.RIGHT:
-            screen[self.shape[0] - width:self.shape[0], 0:height] = rendered_text
+            screen[self.shape[0] - width:self.shape[0], y_start:y_end] = rendered_text
         elif align is TextAlign.CENTRE:
             start = (self.shape[0] - width) // 2
-            screen[start:start+width, 0:height] = rendered_text
+            screen[start:start+width, y_start:y_end] = rendered_text
         else:
             raise ValueError("Unknown Alignment")
 
@@ -255,7 +259,7 @@ class TextRenderer:
     def long_text(self, text: str, align: TextAlign = TextAlign.CENTRE, allow_clip: bool = True) \
             -> list[tuple[Optional[np.ndarray], str]]:
         """Splits a long message into multiple screens of text"""
-        words = text.split(" ")
+        words = text.strip().split(" ")
         if len(words) == 0:
             return []
 
@@ -279,7 +283,41 @@ class TextRenderer:
                 screen_words = " ".join(added_words)
                 output.append((self.text(screen_words, align, allow_clip=allow_clip), screen_words))
 
-        return output
+        # multiline support
+        if self._lines > 1:
+            multiline_output = []
+            line_index = 0
+            screen_state = None
+            screen_text = None
+
+            for (_, words) in output:
+                if line_index == 0:
+                    multiline_output.append((screen_state, screen_text))
+
+                    screen_state = self.text(words, align, allow_clip=allow_clip, line=line_index)
+                    screen_text = words
+                else:
+                    screen_state += self.text(words, align, allow_clip=allow_clip, line=line_index)
+                    screen_text += " " + words
+
+                line_index = (line_index + 1) % self._lines
+
+            # add the final line
+            if line_index != 0:
+                # we have not fully filled the screen, vertically align the text too
+                blank_line_count = self._lines - line_index
+                filled_height = line_index * self._font.height
+                blank_pixel_count = (blank_line_count * self._font.height) // 2
+                aligned_text = np.zeros(self.shape, dtype=bool)
+                aligned_text[:, blank_pixel_count:blank_pixel_count + filled_height] = screen_state[:, :filled_height]
+                multiline_output.append((aligned_text, screen_text))
+            else:
+                # we have filled the screen - just output it
+                multiline_output.append((screen_state, screen_text))
+
+            return multiline_output[1:]  # the first entry is None, None
+        else:
+            return output
 
 
 ADAFRUIT_5X7 = BinaryFont(ADAFRUIT_5X7_DATA, space_width=1, height=8)

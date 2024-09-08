@@ -2,14 +2,14 @@ import time
 import datetime as dt
 
 from demo.sample_demo import Demo
-from flippy.text_rendering import TextRenderer, ADAFRUIT_5X7
+from flippy.text_rendering import TextRenderer, ADAFRUIT_5X7, MINECRAFT
 
 
 class TextDemo(Demo):
     """Demo of displaying text on the sign"""
     def run(self):
         text = input("What text do you want to display? ")
-        renderer = TextRenderer(ADAFRUIT_5X7, self._sign.shape)
+        renderer = TextRenderer(MINECRAFT, self._sign.shape)
         self._sign.state = renderer.text(text)
         self._sign.update()
         input("Press enter to exit...")
@@ -26,7 +26,7 @@ class ClockDemo(Demo):
         return f"{now.hour:02}:{now.minute:02}:{now.second:02}"
 
     def run(self):
-        renderer = TextRenderer(ADAFRUIT_5X7, self._sign.shape)
+        renderer = TextRenderer(MINECRAFT, self._sign.shape)
         while True:
             update_time = time.monotonic()
             self._sign.state = renderer.text(self.get_time())
@@ -39,7 +39,7 @@ class MultiTextDemo(Demo):
     """Demo of displaying long text on the sign"""
     def run(self):
         text = input("What text do you want to display? ")
-        renderer = TextRenderer(ADAFRUIT_5X7, self._sign.shape)
+        renderer = TextRenderer(MINECRAFT, self._sign.shape)
         states = renderer.long_text(text)
         for state in states:
             self._sign.state = state
