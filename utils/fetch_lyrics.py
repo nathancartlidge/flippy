@@ -6,6 +6,7 @@ at commit hash b1e85508742b127e019b6f0f751dc99f4d6bddd4
 
 Original source was released under The Unlicense (public domain, approx. no terms)
 """
+
 import os
 import re
 import functools
@@ -48,11 +49,11 @@ def filter_lyrics(lyrics: str):
 
     # fix curly quotes
     lyrics = unidecode(lyrics)
-    lyrics = lyrics.replace("“", "\"")
-    lyrics = lyrics.replace("”", "\"")
+    lyrics = lyrics.replace("“", '"')
+    lyrics = lyrics.replace("”", '"')
 
     # filter to only timestamped lines
-    lyric_pattern = re.compile(r'^\[\d{2}:\d{2}\.\d{2}].+$')
+    lyric_pattern = re.compile(r"^\[\d{2}:\d{2}\.\d{2}].+$")
     output = []
     for line in lyrics.splitlines():
         if lyric_pattern.match(line):
@@ -62,8 +63,13 @@ def filter_lyrics(lyrics: str):
     return "\n".join(output)
 
 
-def get_lyrics(artist: str, title: str, duration: Optional[int] = None, album: Optional[str] = None,
-               save: bool = True) -> Optional[Lyrics]:
+def get_lyrics(
+    artist: str,
+    title: str,
+    duration: Optional[int] = None,
+    album: Optional[str] = None,
+    save: bool = True,
+) -> Optional[Lyrics]:
     song = Song(artist.strip(), title.strip(), duration=duration, album=album)
 
     for service in SERVICES:
@@ -72,7 +78,9 @@ def get_lyrics(artist: str, title: str, duration: Optional[int] = None, album: O
         if result:
             lyrics, url, timed = result
             if timed:
-                print("Fetched lyrics from", service.__name__.replace("_", ""), "-", url)
+                print(
+                    "Fetched lyrics from", service.__name__.replace("_", ""), "-", url
+                )
                 filtered = filter_lyrics(lyrics)
                 if save and service.__name__ != "_local":
                     save_lyrics(song, filtered)
@@ -80,7 +88,15 @@ def get_lyrics(artist: str, title: str, duration: Optional[int] = None, album: O
 
 
 def save_lyrics(song: Song, lyrics: str):
-    filename = "".join([x if x.isalnum() or x in (" ", "-") else "_" for x in f"{song.name} -- {song.artist}"]) + ".lrc"
+    filename = (
+        "".join(
+            [
+                x if x.isalnum() or x in (" ", "-") else "_"
+                for x in f"{song.name} -- {song.artist}"
+            ]
+        )
+        + ".lrc"
+    )
     os.makedirs("lyrics", exist_ok=True)
     file = pathlib.Path("lyrics").joinpath(filename)
     with open(file, "w", encoding="utf-8") as f:
@@ -91,12 +107,12 @@ def lyrics_service(_func=None, *, enabled=True):
     def _decorator_lyrics_service(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            try:
-                return func(*args, **kwargs)
-            except requests.exceptions.RequestException as error:
-                print("%s: %s" % (func.__name__, error))
-            except Exception as e:
-                raise e
+            # try:
+            return func(*args, **kwargs)
+            # except requests.exceptions.RequestException as error:
+            #     print("%s: %s" % (func.__name__, error))
+            # except Exception as e:
+            #     raise e
 
         if enabled:
             SERVICES.append(wrapper)
@@ -110,11 +126,20 @@ def lyrics_service(_func=None, *, enabled=True):
 
 @lyrics_service
 def _local(song: Song):
-    filename = "".join([x if x.isalnum() or x in (" ", "-") else "_" for x in f"{song.name} -- {song.artist}"]) + ".lrc"
+    filename = (
+        "".join(
+            [
+                x if x.isalnum() or x in (" ", "-") else "_"
+                for x in f"{song.name} -- {song.artist}"
+            ]
+        )
+        + ".lrc"
+    )
     file = pathlib.Path("lyrics").joinpath(filename)
     if file.exists():
         with open(file, "r", encoding="utf-8", errors="ignore") as f:
             return "\n".join(f.readlines()), str(file.resolve()), True
+
 
 @lyrics_service
 def _lrclib(song: Song):
@@ -135,12 +160,14 @@ def _lrclib(song: Song):
 
 @lyrics_service
 def _megalobiz(song: Song):
-    search_url = "https://www.megalobiz.com/search/all?%s" % parse.urlencode({
-        "qry": f"{song.artist.replace('/', '')} {song.name.replace('/', '')}",
-        "display": "more"
-    })
+    search_url = "https://www.megalobiz.com/search/all?%s" % parse.urlencode(
+        {
+            "qry": f"{song.artist.replace('/', '')} {song.name.replace('/', '')}",
+            "display": "more",
+        }
+    )
     search_results = requests.get(search_url)
-    soup = BeautifulSoup(search_results.text, 'html.parser')
+    soup = BeautifulSoup(search_results.text, "html.parser")
     results = soup.find(id="list_entity_container")
     if results:
         result_links = results.find_all("a", class_="entity_name")
@@ -149,10 +176,13 @@ def _megalobiz(song: Song):
 
     for result_link in result_links:
         lower_title = result_link.get_text().lower()
-        if song.artist.replace('/', '').lower() in lower_title and song.name.replace('/', '').lower() in lower_title:
+        if (
+            song.artist.replace("/", "").lower() in lower_title
+            and song.name.replace("/", "").lower() in lower_title
+        ):
             url = f"https://www.megalobiz.com{result_link['href']}"
             possible_text = requests.get(url)
-            soup = BeautifulSoup(possible_text.text, 'html.parser')
+            soup = BeautifulSoup(possible_text.text, "html.parser")
 
             lrc = soup.find("div", class_="lyrics_details").span.get_text()
 
@@ -173,41 +203,46 @@ def _megalobiz(song: Song):
 
 @lyrics_service
 def _rentanadviser(song: Song):
-    search_url = "https://www.rentanadviser.com/en/subtitles/subtitles4songs.aspx?%s" % parse.urlencode({
-        "src": f"{song.artist} {song.name}"
-    })
+    search_url = (
+        "https://www.rentanadviser.com/en/subtitles/subtitles4songs.aspx?%s"
+        % parse.urlencode({"src": f"{song.artist} {song.name}"})
+    )
     search_results = requests.get(search_url, headers={"User-Agent": UA})
-    soup = BeautifulSoup(search_results.text, 'html.parser')
+    soup = BeautifulSoup(search_results.text, "html.parser")
     result_links = soup.find(id="tablecontainer").find_all("a")
 
     for result_link in result_links:
         if result_link["href"] != "subtitles4songs.aspx":
             lower_title = result_link.get_text().lower()
             if song.artist.lower() in lower_title and song.name.lower() in lower_title:
-                url = f'https://www.rentanadviser.com/en/subtitles/{result_link["href"]}&type=lrc'
+                url = f"https://www.rentanadviser.com/en/subtitles/{result_link['href']}&type=lrc"
                 possible_text = requests.get(url, headers={"User-Agent": UA})
-                soup = BeautifulSoup(possible_text.text, 'html.parser')
+                soup = BeautifulSoup(possible_text.text, "html.parser")
 
                 event_validation = soup.find(id="__EVENTVALIDATION")["value"]
                 view_state = soup.find(id="__VIEWSTATE")["value"]
 
-                lrc = requests.post(possible_text.url,
-                                    {"__EVENTTARGET": "ctl00$ContentPlaceHolder1$btnlyrics",
-                                     "__EVENTVALIDATION": event_validation,
-                                     "__VIEWSTATE": view_state},
-                                    headers={"User-Agent": UA, "referer": possible_text.url},
-                                    cookies=search_results.cookies)
+                lrc = requests.post(
+                    possible_text.url,
+                    {
+                        "__EVENTTARGET": "ctl00$ContentPlaceHolder1$btnlyrics",
+                        "__EVENTVALIDATION": event_validation,
+                        "__VIEWSTATE": view_state,
+                    },
+                    headers={"User-Agent": UA, "referer": possible_text.url},
+                    cookies=search_results.cookies,
+                )
 
                 return lrc.text, possible_text.url, True
 
 
 def _lyricsify(song: Song):
     # todo: this is currently protected by CloudFlare so doesn't work as expected
-    search_url = "https://www.lyricsify.com/search?%s" % parse.urlencode({
-        "q": f"{song.artist} {song.name}"
-    })
+    search_url = "https://www.lyricsify.com/search?%s" % parse.urlencode(
+        {"q": f"{song.artist} {song.name}"}
+    )
     search_results = requests.get(search_url, headers={"User-Agent": UA})
-    soup = BeautifulSoup(search_results.text, 'html.parser')
+    soup = BeautifulSoup(search_results.text, "html.parser")
 
     result_container = soup.find("div", class_="sub")
 
@@ -221,9 +256,12 @@ def _lyricsify(song: Song):
                 if song.artist.lower() in name and song.name.lower() in name:
                     url = f"https://www.lyricsify.com{result_link['href']}?download"
                     lyrics_page = requests.get(url, headers={"User-Agent": UA})
-                    soup = BeautifulSoup(lyrics_page.text, 'html.parser')
+                    soup = BeautifulSoup(lyrics_page.text, "html.parser")
 
                     download_link = soup.find(id="iframe_download")["src"]
-                    lrc = requests.get(download_link,
-                                       cookies=lyrics_page.cookies, headers={"User-Agent": UA}).text
+                    lrc = requests.get(
+                        download_link,
+                        cookies=lyrics_page.cookies,
+                        headers={"User-Agent": UA},
+                    ).text
                     return lrc, lyrics_page.url, True

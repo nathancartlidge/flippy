@@ -18,6 +18,7 @@ class Commands(Enum):
 
 class BaseSerialComms:
     """Low-level serial comms, implementing basic communication protocols"""
+
     MOCK = "MOCK"
 
     def __init__(self, port: str, address: int = 0, lazy: bool = False) -> None:
@@ -40,7 +41,7 @@ class BaseSerialComms:
                     self._port += ":2217"
                 self._serial = RemoteSerial(self._port, baudrate=4800)
             else:
-                self._serial = Serial(self._port, baudrate=4800)
+                self._serial = Serial(self._port, baudrate=4800, timeout=10)
             return True
         else:
             return False
@@ -98,11 +99,14 @@ class BaseSerialComms:
             self._serial.write(packet)
 
     @staticmethod
-    def _to_ascii_hex(value: int | bytes, full_byte: bool = False) -> bytes:
+    def _to_ascii_hex(value: int | bytes | str, full_byte: bool = False) -> bytes:
         """
         Converts an integer value (e.g. 55) into the hexadecimal representation
         (e.g. b"37") as ASCII bytes
         """
+        if isinstance(value, str):
+            value = int(value)
+
         if isinstance(value, bytes):
             return binascii.hexlify(value).upper()
         elif full_byte:

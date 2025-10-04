@@ -1,5 +1,4 @@
 import re
-import threading
 from time import sleep, monotonic
 from typing import Optional
 from argparse import ArgumentParser
@@ -47,7 +46,9 @@ class SpotifyTrack:
         progress = track["progress_ms"] / 1000
         start_time = monotonic() - progress
         is_playing = track["is_playing"]
-        return cls(title.strip(), artist.strip(), album, duration, start_time, is_playing)
+        return cls(
+            title.strip(), artist.strip(), album, duration, start_time, is_playing
+        )
 
     def __eq__(self, other):
         if isinstance(other, SpotifyTrack):
@@ -62,15 +63,21 @@ class AutoLyricsDemo(LyricsDemo):
     Attempt to automatically acquire lyrics from Spotify, using a bot with the capability to read the currently playing
     song.
     """
+
     def __init__(self, sign: Sign, comms: SerialComms, lazy: bool = False):
         super().__init__(sign, comms)
 
         self._text = TextRenderer(MINECRAFT, sign.shape)
         load_dotenv()
         try:
-            self._auth = SpotifyOAuth(scope="user-read-currently-playing", redirect_uri="http://localhost:8080")
+            self._auth = SpotifyOAuth(
+                scope="user-read-currently-playing",
+                redirect_uri="http://localhost:8080",
+            )
         except spotipy.oauth2.SpotifyOauthError:
-            print("Note: You can specify SPOTIPY_CLIENT_ID and SPOTIPY_CLIENT_SECRET in a .env file")
+            print(
+                "Note: You can specify SPOTIPY_CLIENT_ID and SPOTIPY_CLIENT_SECRET in a .env file"
+            )
             raise
         self._spotify = spotipy.Spotify(auth_manager=self._auth)
         self._running = True
@@ -95,7 +102,9 @@ class AutoLyricsDemo(LyricsDemo):
 
                     # show the title
                     self._sign.clear()
-                    for screen, text in self._text.long_text(self._track.title + " by " + self._track.artist):
+                    for screen, text in self._text.long_text(
+                        self._track.title + " by " + self._track.artist
+                    ):
                         self._sign.state = screen
                         self._sign.update()
                         sleep(1)
@@ -125,12 +134,16 @@ class AutoLyricsDemo(LyricsDemo):
         """so it can be run in a thread"""
         lyrics = None
         try:
-            lyrics = get_lyrics(track.artist, track.title, album=track.album, duration=track.duration)
+            lyrics = get_lyrics(
+                track.artist, track.title, album=track.album, duration=track.duration
+            )
         finally:
             if self._track == track:
                 # track has not changed since starting to fetch the lyrics
                 if lyrics:
-                    self._track.screens, self._track.lyrics = self._split_into_screens(self._process_lyrics(lyrics))
+                    self._track.screens, self._track.lyrics = self._split_into_screens(
+                        self._process_lyrics(lyrics)
+                    )
                     self._track.lyrics_source = lyrics.source
                 else:
                     self._track.screens, self._track.lyrics = None, None
@@ -172,25 +185,34 @@ class AutoLyricsDemo(LyricsDemo):
                 print(gui.term.clear())
                 while True:
                     if self._track is None:
-                        print(f"{gui.term.red}-- Nothing Playing --{gui.term.normal}",
-                              end="\r", flush=True)
+                        print(
+                            f"{gui.term.red}-- Nothing Playing --{gui.term.normal}",
+                            end="\r",
+                            flush=True,
+                        )
                         sleep(1)
                         continue
 
                     print(gui.term.home, end="")
 
-                    print(f"{gui.term.clear_eol}{gui.term.blue}Now Playing: {self._track.title} "
-                          f"by {self._track.artist}{gui.term.normal}")
+                    print(
+                        f"{gui.term.clear_eol}{gui.term.blue}Now Playing: {self._track.title} "
+                        f"by {self._track.artist}{gui.term.normal}"
+                    )
 
                     # get up-to-date lyrics
                     if self._track.lyrics is None:
                         if self._track.lyrics_source == LYRICS_LOADING:
-                            print(f"{gui.term.clear_eos()}\n{gui.term.red}Finding Lyrics...{gui.term.normal}\n\n\n")
+                            print(
+                                f"{gui.term.clear_eos()}\n{gui.term.red}Finding Lyrics...{gui.term.normal}\n\n\n"
+                            )
                             if self._show_lyrics:
                                 self._sign.state = self._text.text("[ loading ]")
                                 self._sign.update()
                         else:
-                            print(f"{gui.term.clear_eos()}\n{gui.term.red}No Lyrics{gui.term.normal}\n\n\n")
+                            print(
+                                f"{gui.term.clear_eos()}\n{gui.term.red}No Lyrics{gui.term.normal}\n\n\n"
+                            )
                             if self._show_lyrics:
                                 self._sign.state = self._text.text("x")
                                 self._sign.update()
@@ -201,7 +223,9 @@ class AutoLyricsDemo(LyricsDemo):
 
                         sleep(0.25)
                     elif not self._track.is_playing:
-                        print(f"{gui.term.clear_eos()}\n{gui.term.red}Paused{gui.term.normal}\n\n\n")
+                        print(
+                            f"{gui.term.clear_eos()}\n{gui.term.red}Paused{gui.term.normal}\n\n\n"
+                        )
                         if self._show_lyrics:
                             self._sign.state = self._text.text("| |")
                             self._sign.update()
@@ -209,10 +233,16 @@ class AutoLyricsDemo(LyricsDemo):
                         sleep(0.25)
                     else:
                         gui.track = self._track
-                        delta = monotonic() - self._track.start_time + self._track.time_offset
+                        delta = (
+                            monotonic()
+                            - self._track.start_time
+                            + self._track.time_offset
+                        )
                         index = gui.show(delta)
-                        print(f"{gui.term.clear_eol()}{gui.term.blue}offset: {self._track.time_offset:.2f}s / "
-                              f"source: {self._track.lyrics_source}{gui.term.normal}")
+                        print(
+                            f"{gui.term.clear_eol()}{gui.term.blue}offset: {self._track.time_offset:.2f}s / "
+                            f"source: {self._track.lyrics_source}{gui.term.normal}"
+                        )
 
                         if self._show_lyrics:
                             if 0 <= index < len(self._track.screens):

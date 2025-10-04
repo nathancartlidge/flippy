@@ -1,5 +1,3 @@
-from time import monotonic, sleep
-
 from demo.sample_demo import Demo
 
 from flippy.comms import SerialComms
@@ -19,10 +17,12 @@ class LyricsDemo(Demo):
 
     @staticmethod
     def _process_lyrics(lyrics: Lyrics):
-        return list(map(
-            lambda it: (int(it[1:3]) * 60 + float(it[4:9]), it[10:]),
-            lyrics.lyrics.splitlines()
-        ))
+        return list(
+            map(
+                lambda it: (int(it[1:3]) * 60 + float(it[4:9]), it[10:]),
+                lyrics.lyrics.splitlines(),
+            )
+        )
 
     def _split_into_screens(self, lyrics: list, blank: bool = True):
         timed_screens = []
@@ -57,10 +57,9 @@ class LyricsDemo(Demo):
             return
 
         screens, lyrics = self._split_into_screens(self._process_lyrics(lyrics))
-        track = Track(name=self._title,
-                      artist=self._artist,
-                      lyrics=lyrics,
-                      screens=screens)
+        track = Track(
+            name=self._title, artist=self._artist, lyrics=lyrics, screens=screens
+        )
 
         input("Press enter to continue...")
 

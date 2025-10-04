@@ -25,7 +25,7 @@ def list_ports(include_mock: bool = False):
         print(f" {port}: {desc} [{hwid}]")
 
 
-if __name__ == "__main__":
+def run_demo():
     if len(argv) == 1:
         print("ERROR: You have not specified a port")
         list_ports()
@@ -46,7 +46,15 @@ if __name__ == "__main__":
     comms = SerialComms(port=args.port, address=args.address)
     sign = Sign(shape=(int(args.width), int(args.height)), comms=comms)
 
-    demos = [TextDemo, ClockDemo, MultiTextDemo, LifeDemo, LyricsDemo, AutoLyricsDemo, TrainDemo]
+    demos = [
+        TextDemo,
+        ClockDemo,
+        MultiTextDemo,
+        LifeDemo,
+        LyricsDemo,
+        AutoLyricsDemo,
+        TrainDemo,
+    ]
     print("Demos Available:")
     for i, demo in enumerate(demos):
         print(f"{i:2}: {demo.__name__.replace('Demo', '')}")
@@ -56,3 +64,7 @@ if __name__ == "__main__":
     else:
         demo = demos[demo_idx](sign, comms)
         demo.execute()
+
+
+if __name__ == "__main__":
+    run_demo()

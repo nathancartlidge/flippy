@@ -12,6 +12,7 @@ from flippy.text_rendering import TextAlign, TextRenderer, MINECRAFT, NEWBASIC_3
 
 class TrainDemo(Demo):
     """Demo of displaying text on the sign. This uses one of my other projects (trainTable) as the data source"""
+
     def run(self):
         load_dotenv()
 
@@ -30,7 +31,9 @@ class TrainDemo(Demo):
             while True:
                 t1, t2 = self._get_train(origin, destination, key)
                 times = np.zeros(self._sign.shape)
-                times[:, :-1] = renderer_2.text(f"{t1}, {t2}", align=TextAlign.RIGHT)[:, 1:]
+                times[:, :-1] = renderer_2.text(f"{t1}, {t2}", align=TextAlign.RIGHT)[
+                    :, 1:
+                ]
                 self._sign.state = base_state + times
                 self._sign.update()
                 time.sleep(60)
@@ -40,14 +43,21 @@ class TrainDemo(Demo):
 
     @staticmethod
     def _get_train(og, dst, key):
-        response = requests.get(f"https://tt.nthn.uk/ldb/dep/{og}/{dst}?token={key}&filter=true&filter_formation=true")
+        response = requests.get(
+            f"https://tt.nthn.uk/ldb/dep/{og}/{dst}?token={key}&filter=true&filter_formation=true"
+        )
         if response.status_code == 200:
             trains = json.loads(response.text)
             s = trains["services"]  # list of upcoming departures
 
             # depending on what data is available, different fields will be filled for the best-estimate of departure
             # time possible.
-            times = [t.get("expected_departure", t.get("actual_departure", "T???")).split('T')[1][:5] for t in s]
+            times = [
+                t.get("expected_departure", t.get("actual_departure", "T???")).split(
+                    "T"
+                )[1][:5]
+                for t in s
+            ]
             times = [t for t in times if t != "???"]
             if len(times) == 0:
                 return "---", "---"

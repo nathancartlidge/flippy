@@ -7,6 +7,7 @@ from flippy.comms import SerialComms
 
 class Sign:
     """Class representing a single sign"""
+
     def __init__(self, shape: tuple[int, int], comms: SerialComms):
         """
         :param shape: the size of the sign, in the form `(WIDTH, HEIGHT)`
@@ -15,8 +16,10 @@ class Sign:
         """
         self._logger = logging.getLogger("Sign")
         if shape[0] < shape[1]:
-            self._logger.warning("Sign is taller than it is wide - "
-                                 "have you specified the shape correctly?")
+            self._logger.warning(
+                "Sign is taller than it is wide - "
+                "have you specified the shape correctly?"
+            )
         self._shape = shape
         self._comms = comms
         self._state = np.full(shape, False, dtype=bool)
@@ -61,8 +64,11 @@ class Sign:
             return
 
         if enforce_shape and new_state.shape != self.shape:
-            raise ValueError("Incorrect Shape Provided! (%d x %d) instead of (%d x %d)",
-                             *new_state.shape[0:2], *self.shape)
+            raise ValueError(
+                "Incorrect Shape Provided! (%d x %d) instead of (%d x %d)",
+                *new_state.shape[0:2],
+                *self.shape,
+            )
 
         # if the shape does not match, try and overlay the image anyway
         min_width = min(new_state.shape[0], self.shape[0])
@@ -73,7 +79,9 @@ class Sign:
         self._state = np.full(self.shape, False, dtype=bool)
         self._state[0:min_width, 0:min_height] = new_state_subset
 
-        if self._current_state is not None and np.array_equal(self._state, self._current_state):
+        if self._current_state is not None and np.array_equal(
+            self._state, self._current_state
+        ):
             self._up_to_date = True
         else:
             self._up_to_date = False
@@ -99,8 +107,7 @@ class Sign:
         """
         self._comms.test_pattern()
 
-    def preview(self, inplace: bool = False, draw_box: bool = True,
-                wide: bool = True):
+    def preview(self, inplace: bool = False, draw_box: bool = True, wide: bool = True):
         """Previews the state of the sign"""
         output = ""
         if inplace:

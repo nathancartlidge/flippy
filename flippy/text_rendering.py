@@ -3,6 +3,7 @@ This class contains adapter functions (`BinaryFont` and `BitmapFont`) to allow
 font files from other sources (SSD1306ASCII and Minecraft/similar games
 respectively as a source of text
 """
+
 import pathlib
 from abc import abstractmethod
 from enum import Enum
@@ -17,7 +18,10 @@ from flippy.font_data import ADAFRUIT_5X7_DATA, NEWBASIC_3X5_DATA, WENDY_3X5_DAT
 
 class Font:
     """Class to store fonts"""
-    def __init__(self, height: int, num_chars: int, space_width: int = 1, offset: int = 0):
+
+    def __init__(
+        self, height: int, num_chars: int, space_width: int = 1, offset: int = 0
+    ):
         self._height = height
         self._offset = offset
         self._num_chars = num_chars
@@ -67,7 +71,7 @@ class Font:
         output_string = ""
         for line in data.T:
             for char in line:
-                output_string += [' ', '█'][char] * 2
+                output_string += [" ", "█"][char] * 2
             output_string += "\n"
 
         print(output_string)
@@ -75,10 +79,20 @@ class Font:
 
 class BinaryFont(Font):
     """Fonts adapted from https://github.com/greiman/SSD1306Ascii data"""
-    def __init__(self, font_data: list, height: int, space_width: int = 2,
-                 alternate_mode: bool = False, kern: bool = False, offset: int = 0):
+
+    def __init__(
+        self,
+        font_data: list,
+        height: int,
+        space_width: int = 2,
+        alternate_mode: bool = False,
+        kern: bool = False,
+        offset: int = 0,
+    ):
         if height > 16:
-            raise ValueError("This class does not yet support fonts larger than 16px tall")
+            raise ValueError(
+                "This class does not yet support fonts larger than 16px tall"
+            )
         super().__init__(height, len(font_data), space_width=space_width, offset=offset)
 
         self._alternate_mode = alternate_mode
@@ -106,9 +120,10 @@ class BinaryFont(Font):
                 raw_data = self._apply_kerning(raw_data, group=True)
 
             char_midpoint = int(len(raw_data) / 2)
-            return [self._large_font_convert_line(x, y)
-                    for x, y in zip(raw_data[:char_midpoint],
-                                    raw_data[char_midpoint:])]
+            return [
+                self._large_font_convert_line(x, y)
+                for x, y in zip(raw_data[:char_midpoint], raw_data[char_midpoint:])
+            ]
 
     @staticmethod
     def _apply_kerning(raw_data: list[int], group: bool = False):
@@ -131,20 +146,22 @@ class BinaryFont(Font):
     def _small_font_convert_line(self, code):
         """Parses fonts under 8px tall to the correct format"""
         arr = []
-        code_string = f'{code:8b}'.replace(' ', '0')
+        code_string = f"{code:8b}".replace(" ", "0")
         for pixel in code_string:
             arr.append(int(pixel))
-        return arr[-self.height::][::-1]
+        return arr[-self.height : :][::-1]
 
     def _large_font_convert_line(self, code_1, code_2):
         """Parses fonts between 8px and 16px tall to the correct format"""
         arr = []
-        code_string = f'{code_1:8b}'.replace(' ', '0')
-        code_string_2 = f'{code_2:8b}'.replace(' ', '0')
+        code_string = f"{code_1:8b}".replace(" ", "0")
+        code_string_2 = f"{code_2:8b}".replace(" ", "0")
         if self._alternate_mode:
-            code_string = code_string[-(16 - self.height)::-1] + code_string_2[:0:-1]
+            code_string = code_string[-(16 - self.height) :: -1] + code_string_2[:0:-1]
         else:
-            code_string = code_string[::-1] + code_string_2[-(1 + 16 - self.height)::-1]
+            code_string = (
+                code_string[::-1] + code_string_2[-(1 + 16 - self.height) :: -1]
+            )
         for pixel in code_string:
             arr.append(int(pixel))
         return arr
@@ -153,8 +170,9 @@ class BinaryFont(Font):
 class BitmapFont(Font):
     """Fonts adapted from https://github.com/greiman/SSD1306Ascii data"""
 
-    def __init__(self, path: Path, size: int = 8, space_width: int = 2,
-                 kern: bool = True):
+    def __init__(
+        self, path: Path, size: int = 8, space_width: int = 2, kern: bool = True
+    ):
         self._size = size
         self._bitmap = Image.open(path)
 
@@ -162,7 +180,11 @@ class BitmapFont(Font):
         if self._bitmap.mode not in ("1", "L", "P"):
             raise ValueError("Unsupported colour space")
 
-        super().__init__(height=size, num_chars=self._dimensions[0] * self._dimensions[1], space_width=space_width)
+        super().__init__(
+            height=size,
+            num_chars=self._dimensions[0] * self._dimensions[1],
+            space_width=space_width,
+        )
         self._kern = kern
 
     def char(self, character):
@@ -175,7 +197,7 @@ class BitmapFont(Font):
         char_offset = ord(character) - self._offset
         x = self._size * (char_offset % self._dimensions[0])
         y = self._size * (char_offset // self._dimensions[0])
-        pixels = np.array(self._bitmap)[y:y+self._size, x:x+self._size]
+        pixels = np.array(self._bitmap)[y : y + self._size, x : x + self._size]
 
         if self._kern:
             pixels = self._apply_kerning(pixels)
@@ -225,7 +247,13 @@ class TextRenderer:
     def shape(self):
         return self._shape
 
-    def text(self, text: str, align: TextAlign = TextAlign.CENTRE, line: int = 0, allow_clip: bool = False):
+    def text(
+        self,
+        text: str,
+        align: TextAlign = TextAlign.CENTRE,
+        line: int = 0,
+        allow_clip: bool = False,
+    ):
         """renders a single screen of text"""
         screen = np.full(self.shape, False, dtype=bool)
         if text == "":
@@ -247,17 +275,18 @@ class TextRenderer:
         if align is TextAlign.LEFT:
             screen[0:width, y_start:y_end] = rendered_text
         elif align is TextAlign.RIGHT:
-            screen[self.shape[0] - width:self.shape[0], y_start:y_end] = rendered_text
+            screen[self.shape[0] - width : self.shape[0], y_start:y_end] = rendered_text
         elif align is TextAlign.CENTRE:
             start = (self.shape[0] - width) // 2
-            screen[start:start+width, y_start:y_end] = rendered_text
+            screen[start : start + width, y_start:y_end] = rendered_text
         else:
             raise ValueError("Unknown Alignment")
 
         return screen
 
-    def long_text(self, text: str, align: TextAlign = TextAlign.CENTRE, allow_clip: bool = True) \
-            -> list[tuple[Optional[np.ndarray], str]]:
+    def long_text(
+        self, text: str, align: TextAlign = TextAlign.CENTRE, allow_clip: bool = True
+    ) -> list[tuple[Optional[np.ndarray], str]]:
         """Splits a long message into multiple screens of text"""
         words = text.strip().split(" ")
         if len(words) == 0:
@@ -267,7 +296,9 @@ class TextRenderer:
         counter = 0
         while counter < len(words):
             added_words = [words[counter]]
-            while text_fits := (self._font.string(" ".join(added_words)).shape[0] <= self.shape[0]):
+            while text_fits := (
+                self._font.string(" ".join(added_words)).shape[0] <= self.shape[0]
+            ):
                 if counter + len(added_words) == len(words):
                     break
 
@@ -281,7 +312,12 @@ class TextRenderer:
             else:
                 counter += len(added_words)
                 screen_words = " ".join(added_words)
-                output.append((self.text(screen_words, align, allow_clip=allow_clip), screen_words))
+                output.append(
+                    (
+                        self.text(screen_words, align, allow_clip=allow_clip),
+                        screen_words,
+                    )
+                )
 
         # multiline support
         if self._lines > 1:
@@ -290,14 +326,18 @@ class TextRenderer:
             screen_state = None
             screen_text = None
 
-            for (_, words) in output:
+            for _, words in output:
                 if line_index == 0:
                     multiline_output.append((screen_state, screen_text))
 
-                    screen_state = self.text(words, align, allow_clip=allow_clip, line=line_index)
+                    screen_state = self.text(
+                        words, align, allow_clip=allow_clip, line=line_index
+                    )
                     screen_text = words
                 else:
-                    screen_state += self.text(words, align, allow_clip=allow_clip, line=line_index)
+                    screen_state += self.text(
+                        words, align, allow_clip=allow_clip, line=line_index
+                    )
                     screen_text += " " + words
 
                 line_index = (line_index + 1) % self._lines
@@ -309,7 +349,9 @@ class TextRenderer:
                 filled_height = line_index * self._font.height
                 blank_pixel_count = (blank_line_count * self._font.height) // 2
                 aligned_text = np.zeros(self.shape, dtype=bool)
-                aligned_text[:, blank_pixel_count:blank_pixel_count + filled_height] = screen_state[:, :filled_height]
+                aligned_text[
+                    :, blank_pixel_count : blank_pixel_count + filled_height
+                ] = screen_state[:, :filled_height]
                 multiline_output.append((aligned_text, screen_text))
             else:
                 # we have filled the screen - just output it
@@ -323,9 +365,13 @@ class TextRenderer:
 ADAFRUIT_5X7 = BinaryFont(ADAFRUIT_5X7_DATA, space_width=1, height=8)
 ADAFRUIT_5X7_KERN = BinaryFont(ADAFRUIT_5X7_DATA, space_width=1, height=8, kern=True)
 NEWBASIC_3X5 = BinaryFont(NEWBASIC_3X5_DATA, space_width=1, height=8, offset=32)
-NEWBASIC_3X5_KERN = BinaryFont(NEWBASIC_3X5_DATA, space_width=1, height=8, kern=True, offset=32)
+NEWBASIC_3X5_KERN = BinaryFont(
+    NEWBASIC_3X5_DATA, space_width=1, height=8, kern=True, offset=32
+)
 WENDY_3X5 = BinaryFont(WENDY_3X5_DATA, space_width=1, height=5, offset=32)
-WENDY_3X5_KERN = BinaryFont(WENDY_3X5_DATA, space_width=1, height=5, kern=True, offset=32)
+WENDY_3X5_KERN = BinaryFont(
+    WENDY_3X5_DATA, space_width=1, height=5, kern=True, offset=32
+)
 
 # this is not bundled, but can be found from a default minecraft texture pack
 #  (e.g. https://www.curseforge.com/minecraft/texture-packs/vanilladefault)
@@ -336,6 +382,8 @@ if minecraft_font_path.exists():
     MINECRAFT = BitmapFont(minecraft_font_path, space_width=1)
 
 MINECRAFT_ENCHANT = None
-minecraft_enchant_font_path = pathlib.Path(__file__).parent.joinpath("minecraft_enchant_font.png")
+minecraft_enchant_font_path = pathlib.Path(__file__).parent.joinpath(
+    "minecraft_enchant_font.png"
+)
 if minecraft_enchant_font_path.exists():
     MINECRAFT_ENCHANT = BitmapFont(minecraft_enchant_font_path, space_width=1)

@@ -16,9 +16,19 @@ class LifeDemo(Demo):
                 ih = (i + 1) % board.shape[0]
                 jl = j - 1
                 jh = (j + 1) % board.shape[1]
-                neighbours = board[il, jl] + board[i, jl] + board[ih, jl] + board[il, j] + board[ih, j] + \
-                    board[il, jh] + board[i, jh] + board[ih, jh]
-                new_board[i, j] = (board[i, j] and neighbours in (2, 3)) or (not board[i, j] and neighbours == 3)
+                neighbours = (
+                    board[il, jl]
+                    + board[i, jl]
+                    + board[ih, jl]
+                    + board[il, j]
+                    + board[ih, j]
+                    + board[il, jh]
+                    + board[i, jh]
+                    + board[ih, jh]
+                )
+                new_board[i, j] = (board[i, j] and neighbours in (2, 3)) or (
+                    not board[i, j] and neighbours == 3
+                )
 
         return new_board
 

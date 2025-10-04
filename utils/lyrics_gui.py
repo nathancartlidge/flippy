@@ -45,7 +45,7 @@ class LyricsGui:
     def get_index(self, time: float, last_index: Optional[int] = -1) -> int:
         """returns the most recent lyric (the lyric with the largest time that is *not* larger than the current time"""
         if last_index is not None and last_index >= 0:
-            candidates = self._track.lyrics[last_index + 1:]
+            candidates = self._track.lyrics[last_index + 1 :]
         else:
             candidates = self._track.lyrics
             last_index = -1
@@ -63,7 +63,9 @@ class LyricsGui:
 
     def lyrics(self, index: int):
         def _safe_get(i):
-            return None if i < 0 or i >= len(self._track.lyrics) else self._track.lyrics[i]
+            return (
+                None if i < 0 or i >= len(self._track.lyrics) else self._track.lyrics[i]
+            )
 
         if index is None:
             return [None, None, None]
@@ -82,9 +84,13 @@ class LyricsGui:
             if pair:
                 t, line = pair
                 if i == 1:
-                    print(f"{self.term.clear_eol}{self.term.white}[{t:.1f}]: {line}{self.term.normal}")
+                    print(
+                        f"{self.term.clear_eol}{self.term.white}[{t:.1f}]: {line}{self.term.normal}"
+                    )
                 else:
-                    print(f"{self.term.clear_eol}{self.term.red}[{t:.1f}]: {line}{self.term.normal}")
+                    print(
+                        f"{self.term.clear_eol}{self.term.red}[{t:.1f}]: {line}{self.term.normal}"
+                    )
             else:
                 print(self.term.clear_eol)
         return index
@@ -93,7 +99,9 @@ class LyricsGui:
         if self.track is None:
             raise ValueError()
 
-        print(f"{self.term.blue}Now Playing: {self._track.name}{self.term.normal}\n\n\n\n")
+        print(
+            f"{self.term.blue}Now Playing: {self._track.name}{self.term.normal}\n\n\n\n"
+        )
         end_time = self._track.lyrics[-1][0] + 5
         start_time = monotonic()
         with self.term.cbreak(), self.term.hidden_cursor():

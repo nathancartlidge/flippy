@@ -2,11 +2,12 @@ import time
 import datetime as dt
 
 from demo.sample_demo import Demo
-from flippy.text_rendering import TextRenderer, ADAFRUIT_5X7, MINECRAFT
+from flippy.text_rendering import TextRenderer, MINECRAFT
 
 
 class TextDemo(Demo):
     """Demo of displaying text on the sign"""
+
     def run(self):
         text = input("What text do you want to display? ")
         renderer = TextRenderer(MINECRAFT, self._sign.shape)
@@ -20,6 +21,7 @@ class TextDemo(Demo):
 
 class ClockDemo(Demo):
     """Demo of displaying the time on the sign"""
+
     @staticmethod
     def get_time():
         now = dt.datetime.now()
@@ -37,6 +39,7 @@ class ClockDemo(Demo):
 
 class MultiTextDemo(Demo):
     """Demo of displaying long text on the sign"""
+
     def run(self):
         text = input("What text do you want to display? ")
         renderer = TextRenderer(MINECRAFT, self._sign.shape)
